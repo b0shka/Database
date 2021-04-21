@@ -13,3 +13,6 @@ pip3 install -r requirements.txt
 ```
 python3 ./main.py
 ```
+
+### Additionally
+In the `mysql_database` folder there is exactly the same program, but it creates a database not on SQLite but on a MySQL server
