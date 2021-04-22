@@ -18,10 +18,13 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 		self.setupUi(self)
 		self.setIcon()
 		self.click_button()
-		self.get_name_table()
-		self.filter()
-		self.mode_table = get_table()
-		self.add_name_person()
+		try:
+			self.mode_table = get_table()
+			self.add_name_person()
+			self.get_name_table()
+			self.filter()
+		except NameError:
+			QMessageBox.information(self.pushButton, 'Уведомление', 'Сервер MySQL не запущен')
 
 	# Добавление фотографии
 	def setIcon(self):
@@ -45,14 +48,14 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 
 	# Добавление пользователей в список
 	def add_name_person(self):
-		data = get_main_data_users()
+		data = get_main_data_users(self.mode_table)
 		for i in data:
 			if len(str(i['id'])) == 1:
 				num1 = str(i['id']) + '    '
 			elif len(str(i['id'])) == 2:
 				num1 = str(i['id']) + '  '
 
-			if len(str(i['name'])) <= 5:
+			if len(str(i['name'])) <= 4:
 				num2 = i['name'] + '\t\t'
 			else:
 				num2 = i['name'] + '\t'
@@ -96,7 +99,7 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 			user_id = text[0]
 			self.lineEdit.setText("")
 			self.listWidget.clear()
-			result_user = get_info_search_id(user_id)
+			result_user = get_info_search_id(self.mode_table, user_id)
 			for i in result_user:
 				if len(str(i['id'])) == 1:
 					num1 = str(i['id']) + '    '
@@ -123,7 +126,7 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 		elif len(text) == 1:
 			self.lineEdit.setText("")
 			self.listWidget.clear()
-			result_user = get_info_search()
+			result_user = get_info_search(self.mode_table)
 			for i in result_user:
 				if self.valid_name(text[0], i['name']) == 1 or self.valid_name(text[0], i['last_name']) == 1 or self.valid_name(text[0], i['middle_name']) == 1:
 					result_search.append(i)
@@ -134,7 +137,7 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 		elif len(text) == 2:
 			self.lineEdit.setText("")
 			self.listWidget.clear()
-			result_user = get_info_search()
+			result_user = get_info_search(self.mode_table)
 			for i in result_user:
 				n = 0
 				if self.valid_name(text[0], i['name']) == 1 and self.valid_name(text[1], i['last_name']) == 1 or self.valid_name(text[0], i['name']) == 1 and self.valid_name(text[1], i['middle_name']) == 1:
@@ -165,7 +168,7 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 			n = 0
 			self.lineEdit.setText("")
 			self.listWidget.clear()
-			result_user = get_info_search()
+			result_user = get_info_search(self.mode_table)
 			for i in result_user:
 				n = 0
 				if self.valid_name(text[0], i[1]) == 1 and self.valid_name(text[1], i[2]) == 1 and self.valid_name(text[2], i[3]) == 1:
@@ -204,7 +207,7 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 	# Добавление результата поиска в программу
 	def add_result_search(self, result_search):
 		for data in result_search:
-			person_data = get_info_search_listwidget(data)
+			person_data = get_info_search_listwidget(self.mode_table, data)
 			for i in person_data:
 				if len(str(i['id'])) == 1:
 					num1 = str(i['id']) + '    '
@@ -232,6 +235,7 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 	# Очищение результата поиска
 	def drop_search(self):
 		self.listWidget.clear()
+		self.mode_table = get_table()
 		self.add_name_person()
 		self.listWidget_2.clear()
 		self.get_name_table()
@@ -353,7 +357,7 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 			relative = self.textEdit_4.toPlainText()
 			other_info = self.textEdit_5.toPlainText()
 
-			add_user(name_table, user_id, name, last_name, middle_name, age, birth, city, address, user_index, place_work, education, home_phone, car, email, vk, instagram, other_social, number_phone, pasport, snils, hobby, telegram, relative, other_info)
+			add_user_to_server(name_table, user_id, name, last_name, middle_name, age, birth, city, address, user_index, place_work, education, home_phone, car, email, vk, instagram, other_social, number_phone, pasport, snils, hobby, telegram, relative, other_info)
 			QMessageBox.information(self.pushButton, 'Уведомление', 'Запись успешно создана!')
 
 			self.listWidget.clear()
@@ -365,7 +369,6 @@ class Database(QtWidgets.QMainWindow, main.Ui_Database_user):
 		global title_people
 		global mode_table
 		mode_table = self.mode_table
-		print(mode_table)
 		title_people = item.text().split()
 		self.person = Info_window()
 		self.person.show()
@@ -390,15 +393,97 @@ class Info_window(QtWidgets.QMainWindow, about_person.Ui_mainWindow):
 	# Добавление заголовка
 	def add_label(self):
 		try:
-			if title_people[1][0] in "АОЭЕИУЁЮЯ":
+			if title_people[1][0] in "АОЭЕИУЁЮЯEYUIOA":
 				self.label.setText('Информация об ' + str(title_people[1]) + ' ' + str(title_people[2]))
 			else:
 				self.label.setText('Информация о ' + str(title_people[1]) + ' ' + str(title_people[2]))
 		except IndexError:
-			if title_people[1][0] in "АОЭЕИУЁЮЯ":
+			if title_people[1][0] in "АОЭЕИУЁЮЯEYUIOA":
 				self.label.setText('Информация об ' + str(title_people[1]))
 			else:
 				self.label.setText('Информация о ' + str(title_people[1]))
+
+	# Добавления в поля информации из базы данных
+	def add_info(self):
+		people_info = get_info_for_window_info_person(mode_table, title_people[0])
+
+		form = ['name', 'last_name', 'middle_name', 'age', 'birth', 'city', 'address', 'user_index', 'place_work', 'education', 'home_phone', 'car', 'email', 'vk', 'instagram', 'other_social', 'number_phone', 'pasport', 'snils', 'hobby', 'telegram', 'relative', 'other_info']
+		for i in form:
+			if people_info[i] == 'None':
+				people_info[i] = ''
+
+		self.lineEdit_200.setText(people_info['name'])
+		self.lineEdit_201.setText(people_info['last_name'])
+		self.lineEdit_202.setText(people_info['middle_name'])
+		self.lineEdit_203.setText(people_info['age'])
+		self.lineEdit_204.setText(people_info['birth'])
+		self.lineEdit_205.setText(people_info['city'])
+		self.lineEdit_206.setText(people_info['address'])
+		self.lineEdit_207.setText(people_info['user_index'])
+		self.lineEdit_208.setText(people_info['place_work'])
+		self.textEdit_1.setText(people_info['education'])
+		self.lineEdit_209.setText(people_info['home_phone'])
+		self.lineEdit_210.setText(people_info['car'])
+		self.lineEdit_211.setText(people_info['email'])
+		self.lineEdit_212.setText(people_info['vk'])
+		self.lineEdit_213.setText(people_info['instagram'])
+		self.textEdit_2.setText(people_info['other_social'])
+		self.lineEdit_214.setText(people_info['number_phone'])
+		self.textEdit_3.setText(people_info['pasport'])
+		self.lineEdit_215.setText(people_info['snils'])
+		self.lineEdit_216.setText(people_info['hobby'])
+		self.lineEdit_217.setText(people_info['telegram'])
+		self.textEdit_4.setText(people_info['relative'])
+		self.textEdit_5.setText(people_info['other_info'])
+
+	# Перемещение пользователя в другую таблицу
+	def move_user(self):
+		name_table = self.comboBox.currentText()
+
+		user_id = generate_id(name_table)
+		name = self.lineEdit_200.text().title()
+		if name == '':
+			QMessageBox.information(self.pushButton_5, 'Уведомление', 'Заполните имя и фамилию')
+		else:
+			last_name = self.lineEdit_201.text().title()
+			middle_name = self.lineEdit_202.text().title()
+			age = self.lineEdit_203.text()
+			birth = self.lineEdit_204.text()
+			city = self.lineEdit_205.text().title()
+			address = self.lineEdit_206.text().title()
+			user_index = self.lineEdit_207.text()
+			place_work = self.lineEdit_208.text()
+			education = self.textEdit_1.toPlainText()
+			home_phone = self.lineEdit_209.text()
+			car = self.lineEdit_210.text().title()
+			email = self.lineEdit_211.text()
+			vk = self.lineEdit_212.text()
+			instagram = self.lineEdit_213.text()
+			other_social = self.textEdit_2.toPlainText()
+			number_phone = self.lineEdit_214.text()
+			pasport = self.textEdit_3.toPlainText()
+			snils = self.lineEdit_215.text()
+			hobby = self.lineEdit_216.text().title()
+			telegram = self.lineEdit_217.text().title()
+			relative = self.textEdit_4.toPlainText()
+			other_info = self.textEdit_5.toPlainText()
+
+			move_user_to_other_table(title_people, mode_table, name_table, user_id, name, last_name, middle_name, age, birth, city, address, user_index, place_work, education, home_phone, car, email, vk, instagram, other_social, number_phone, pasport, snils, hobby, telegram, relative, other_info)
+
+			QMessageBox.information(self.pushButton_6, 'Уведомление', 'Перемещение успешно завершено')
+			self.close()
+
+	# Добавление в фильтр название таблиц
+	def filter(self):
+		name_tables = get_name_all_table()
+		for i in name_tables:
+			self.comboBox.addItem(i['Tables_in_server'])
+
+	# Вызов функций кнопок
+	def click_button(self):
+		self.pushButton_6.clicked.connect(self.save_user)
+		self.pushButton_7.clicked.connect(self.delete_user)
+		self.pushButton_8.clicked.connect(self.move_user)
 
 	# Кнопка сохранения измененных данных
 	def save_user(self):
@@ -449,8 +534,7 @@ class Info_window(QtWidgets.QMainWindow, about_person.Ui_mainWindow):
 			relative = self.textEdit_4.toPlainText()
 			other_info = self.textEdit_5.toPlainText()
 
-			sql.execute(f"UPDATE '{mode_table}' SET name = '{name}', last_name = '{last_name}', middle_name = '{middle_name}', age = '{age}', birth = '{birth}', city = '{city}', address = '{address}', user_index = '{user_index}', place_work = '{place_work}', education = '{education}', home_phone = '{home_phone}', car = '{car}', email = '{email}', vk = '{vk}', instagram = '{instagram}', other_social = '{other_social}', number_phone = '{number_phone}', pasport = '{pasport}', snils = '{snils}', hobby = '{hobby}', telegram = '{telegram}', relative = '{relative}', other_info = '{other_info}' WHERE id = '{title_people[0]}'")
-			db.commit()
+			save_user(mode_table, title_people, name, last_name, middle_name, age, birth, city, address, user_index, place_work, education, home_phone, car, email, vk, instagram, other_social, number_phone, pasport, snils, hobby, telegram, relative, other_info)
 			QMessageBox.information(self.pushButton_6, 'Уведомление', 'Сохранение успешно завершено')
 			self.close()
 
@@ -458,96 +542,10 @@ class Info_window(QtWidgets.QMainWindow, about_person.Ui_mainWindow):
 	def delete_user(self):
 		user_true = QMessageBox.question(self, 'Удалить', 'Вы действительно хотите удалить?', QMessageBox.Yes | QMessageBox.No)
 		if user_true == QMessageBox.Yes:
-			sql.execute(f"DELETE FROM '{mode_table}' WHERE id = '{title_people[0]}'")
-			db.commit()
+			delete_user(mode_table, title_people)
 			self.close()
 		elif user_true == QMessageBox.No:
 			pass
-
-	# Добавления в поля информации из базы данных
-	def add_info(self):
-		sql.execute(f"SELECT name, last_name, middle_name, age, birth, city, address, user_index, place_work, education, home_phone, car, email, vk, instagram, other_social, number_phone, pasport, snils, hobby, telegram, relative, other_info FROM '{mode_table}' WHERE id = '{title_people[0]}'")
-
-		people_info = sql.fetchone()
-
-		self.lineEdit_200.setText(people_info[0])
-		self.lineEdit_201.setText(people_info[1])
-		self.lineEdit_202.setText(people_info[2])
-		self.lineEdit_203.setText(str(people_info[3]))
-		self.lineEdit_204.setText(str(people_info[4]))
-		self.lineEdit_205.setText(people_info[5])
-		self.lineEdit_206.setText(str(people_info[6]))
-		self.lineEdit_207.setText(str(people_info[7]))
-		self.lineEdit_208.setText(people_info[8])
-		self.textEdit_1.setText(str(people_info[9]))
-		self.lineEdit_209.setText(str(people_info[10]))
-		self.lineEdit_210.setText(people_info[11])
-		self.lineEdit_211.setText(people_info[12])
-		self.lineEdit_212.setText(people_info[13])
-		self.lineEdit_213.setText(str(people_info[14]))
-		self.textEdit_2.setText(str(people_info[15]))
-		self.lineEdit_214.setText(str(people_info[16]))
-		self.textEdit_3.setText(str(people_info[17]))
-		self.lineEdit_215.setText(str(people_info[18]))
-		self.lineEdit_216.setText(str(people_info[19]))
-		self.lineEdit_217.setText(str(people_info[20]))
-		self.textEdit_4.setText(people_info[21])
-		self.textEdit_5.setText(people_info[22])
-
-	# Перемещение пользователя в другую таблицу
-	def move_user_to_other_table(self):
-		name_table = self.comboBox.currentText()
-
-		user_id = 1
-		for i in sql.execute(f"SELECT id FROM '{name_table}';"):
-			if int(i[0]) == user_id:
-				user_id += 1
-			else:
-				break
-		name = self.lineEdit_200.text().title()
-		if name == '':
-			QMessageBox.information(self.pushButton_5, 'Уведомление', 'Заполните имя и фамилию')
-		else:
-			last_name = self.lineEdit_201.text().title()
-			middle_name = self.lineEdit_202.text().title()
-			age = self.lineEdit_203.text()
-			birth = self.lineEdit_204.text()
-			city = self.lineEdit_205.text().title()
-			address = self.lineEdit_206.text().title()
-			user_index = self.lineEdit_207.text()
-			place_work = self.lineEdit_208.text()
-			education = self.textEdit_1.toPlainText()
-			home_phone = self.lineEdit_209.text()
-			car = self.lineEdit_210.text().title()
-			email = self.lineEdit_211.text()
-			vk = self.lineEdit_212.text()
-			instagram = self.lineEdit_213.text()
-			other_social = self.textEdit_2.toPlainText()
-			number_phone = self.lineEdit_214.text()
-			pasport = self.textEdit_3.toPlainText()
-			snils = self.lineEdit_215.text()
-			hobby = self.lineEdit_216.text().title()
-			telegram = self.lineEdit_217.text().title()
-			relative = self.textEdit_4.toPlainText()
-			other_info = self.textEdit_5.toPlainText()
-
-			sql.execute(f"INSERT INTO '{name_table}' (id, name, last_name, middle_name, age, birth, city, address, user_index, place_work, education, home_phone, car, email, vk, instagram, other_social, number_phone, pasport, snils, hobby, telegram, relative, other_info) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", (user_id, name, last_name, middle_name, age, birth, city, address, user_index, place_work, education, home_phone, car, email, vk, instagram, other_social, number_phone, pasport, snils, hobby, telegram, relative, other_info))
-			db.commit()
-			sql.execute(f"DELETE FROM '{mode_table}' WHERE id = '{title_people[0]}'")
-			db.commit()
-			QMessageBox.information(self.pushButton_6, 'Уведомление', 'Перемещение успешно завершено')
-			self.close()
-
-	# Добавление в фильтр название таблиц
-	def filter(self):
-		for i in sql.execute('SELECT name FROM sqlite_master WHERE type = "table"'):
-			self.comboBox.addItem(f"{i[0]}")
-
-	# Вызов функций кнопок
-	def click_button(self):
-		self.pushButton_6.clicked.connect(self.save_user)
-		self.pushButton_7.clicked.connect(self.delete_user)
-		self.pushButton_8.clicked.connect(self.move_user_to_other_table)
 
 
 # Окно для создания новой таблицы
@@ -556,7 +554,6 @@ class new_table(QtWidgets.QMainWindow, new_table.Ui_MainWindow):
 		super().__init__()
 		self.setupUi(self)
 		self.setIcon()
-		self.click_create()
 		self.key_click()
 		
 	# Добавление фотографии
@@ -567,8 +564,6 @@ class new_table(QtWidgets.QMainWindow, new_table.Ui_MainWindow):
 	# Действия для клавиш
 	def key_click(self):
 		self.lineEdit_1.returnPressed.connect(self.create)
-
-	def click_create(self):
 		self.pushButton_1.clicked.connect(self.create)
 
 	def create(self):
@@ -595,10 +590,15 @@ class new_table(QtWidgets.QMainWindow, new_table.Ui_MainWindow):
 			"""
 			self.lineEdit_1.setStyleSheet(default_style_form)
 
-			names = []
-			for i in sql.execute('SELECT name FROM sqlite_master WHERE type = "table"'):
-				names.append(i[0])
-			if table_name not in names:
+			list_table = get_name_all_table()
+			number = 0
+			for i in list_table:
+				print()
+				if table_name == i['Tables_in_server']:
+					number += 1
+				if number > 0:
+					break
+			if number == 0:
 				create_new_table(table_name)
 			else:
 				QMessageBox.information(self.pushButton_1, 'Уведомление', 'Таблица с таким названием уже существует')
