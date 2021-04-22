@@ -4,6 +4,8 @@ ____
 ### Install everything you need and run
 #### Installation
 ```
+git clone https://github.com/b0shka/database.git
+cd database
 pip3 install -r requirements.txt
 ```
 #### Run
