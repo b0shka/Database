@@ -18,4 +18,4 @@ python3 ./main.py
 ![alt text](icon/3.png)
 
 ### Additionally
-In the `mysql_database` folder there is exactly the same program, but it creates a database not on SQLite but on a MySQL server
+In the `mysql_database` folder there is exactly the same program, but it creates a database not on SQLite but on a MySQL server. The `database.desktop` file contains the code for creating a program shortcut in linux. The file `main.bin` is already a compiled program
